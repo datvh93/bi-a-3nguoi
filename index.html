@@ -19,7 +19,7 @@
     .player-btn { flex: 1; padding: 10px 6px; font-size: 14px; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; margin: 0; }
     .player-btn.active { background: #1e40af; }
     .player-btn.disabled { background: #d1d5db; color: #6b7280; cursor: not-allowed; }
-    .summary-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+    .summary-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee; font-size: 14px; gap: 8px; }
     .summary-row:last-child { border-bottom: none; }
     .win { color: #16a34a; font-weight: bold; }
     .lose { color: #dc2626; font-weight: bold; }
@@ -71,6 +71,8 @@
 <script>
 let players = ['A','B','C'];
 let balances = { A:0, B:0, C:0 };
+let wins = { A:0, B:0, C:0 };
+let losses = { A:0, B:0, C:0 };
 let history = [];
 let selectedPlayers = [];
 let lastWinner = null;
@@ -83,6 +85,8 @@ function loadState(){
     const data = JSON.parse(saved);
     players = data.players || ['A','B','C'];
     balances = data.balances || { A:0, B:0, C:0 };
+    wins = data.wins || { A:0, B:0, C:0 };
+    losses = data.losses || { A:0, B:0, C:0 };
     history = data.history || [];
     lastWinner = data.lastWinner || null;
     lastLoser = data.lastLoser || null;
@@ -96,7 +100,9 @@ function loadState(){
 }
 
 function saveState(){
-  localStorage.setItem('bia3_state', JSON.stringify({ players, balances, history, lastWinner, lastLoser, betAmount }));
+  localStorage.setItem('bia3_state', JSON.stringify({
+    players, balances, wins, losses, history, lastWinner, lastLoser, betAmount
+  }));
 }
 
 function getName(p){
@@ -135,7 +141,8 @@ function updateWinnerButtons(){
   } else {
     winBtn1.disabled=true; winBtn2.disabled=true;
     winBtn1.classList.add('disabled'); winBtn2.classList.add('disabled');
-    winBtn1.textContent='Người 1'; winBtn2.textContent='Người 2';
+    winBtn1.textContent='Người 1';
+    winBtn2.textContent='Người 2';
   }
 }
 
@@ -144,7 +151,8 @@ function togglePlayerSelection(p){
   if(idx>-1) selectedPlayers.splice(idx,1);
   else if(selectedPlayers.length<2) selectedPlayers.push(p);
   else return;
-  updateButtons(); saveState();
+  updateButtons();
+  saveState();
 }
 
 function setWinnerByIndex(i){
@@ -154,10 +162,16 @@ function setWinnerByIndex(i){
   const money = betAmount;
   balances[winner] += money;
   balances[loser] -= money;
+  wins[winner] += 1;
+  losses[loser] += 1;
   history.push({ winner, loser, money });
-  lastWinner = winner; lastLoser = loser;
+  lastWinner = winner;
+  lastLoser = loser;
   selectedPlayers = [];
-  updateButtons(); renderSummary(); renderHistory(); saveState();
+  updateButtons();
+  renderSummary();
+  renderHistory();
+  saveState();
   autoSelectNext();
 }
 
@@ -175,46 +189,88 @@ function deleteRound(index){
   const round = history[index];
   balances[round.winner] -= round.money;
   balances[round.loser] += round.money;
+  wins[round.winner] -= 1;
+  losses[round.loser] -= 1;
   history.splice(index,1);
-  if(history.length){ lastWinner = history[history.length-1].winner; lastLoser = history[history.length-1].loser; }
-  else { lastWinner = null; lastLoser = null; }
-  renderSummary(); renderHistory(); saveState();
+  if(history.length){
+    lastWinner = history[history.length-1].winner;
+    lastLoser = history[history.length-1].loser;
+  } else {
+    lastWinner = null;
+    lastLoser = null;
+  }
+  renderSummary();
+  renderHistory();
+  saveState();
 }
 
 function renderSummary(){
-  const sum = document.getElementById('summary'); sum.innerHTML='';
+  const sum = document.getElementById('summary');
+  sum.innerHTML = '';
   players.forEach(p=>{
-    const row=document.createElement('div'); row.className='summary-row';
-    const left=document.createElement('span'); left.textContent=getName(p);
-    const right=document.createElement('span'); right.textContent=(balances[p]>=0?'+':'')+balances[p]+'k';
+    const row=document.createElement('div');
+    row.className='summary-row';
+    const left=document.createElement('span');
+    left.textContent = `${getName(p)} (Thắng: ${wins[p]} - Thua: ${losses[p]})`;
+    const right=document.createElement('span');
+    right.textContent = (balances[p]>=0?'+':'') + balances[p] + 'k';
     if(balances[p]>0) right.className='win';
     if(balances[p]<0) right.className='lose';
-    row.append(left,right); sum.appendChild(row);
+    row.append(left,right);
+    sum.appendChild(row);
   });
 }
 
 function renderHistory(){
-  const hist=document.getElementById('history'); hist.innerHTML='';
-  if(!history.length){ const e=document.createElement('div'); e.className='small'; e.textContent='Chưa có ván nào.'; hist.appendChild(e); return; }
+  const hist=document.getElementById('history');
+  hist.innerHTML = '';
+  if(!history.length){
+    const e=document.createElement('div');
+    e.className='small';
+    e.textContent='Chưa có ván nào.';
+    hist.appendChild(e);
+    return;
+  }
   history.forEach((r,idx)=>{
-    const item=document.createElement('div'); item.className='history-item';
-    const info=document.createElement('div'); info.className='history-info'; info.textContent='Ván '+(idx+1)+': '+getName(r.winner)+' thắng '+getName(r.loser)+' '+r.money+'k';
-    const btn=document.createElement('button'); btn.className='delete-round'; btn.textContent='Xóa'; btn.onclick=()=>deleteRound(idx);
-    item.append(info,btn); hist.appendChild(item);
+    const item=document.createElement('div');
+    item.className='history-item';
+    const info=document.createElement('div');
+    info.className='history-info';
+    info.textContent='Ván '+(idx+1)+': '+getName(r.winner)+' thắng '+getName(r.loser)+' '+r.money+'k';
+    const btn=document.createElement('button');
+    btn.className='delete-round';
+    btn.textContent='Xóa';
+    btn.onclick=()=>deleteRound(idx);
+    item.append(info,btn);
+    hist.appendChild(item);
   });
 }
 
 function resetAll(){
   if(!confirm('Bạn có chắc muốn xóa toàn bộ dữ liệu?')) return;
-  localStorage.removeItem('bia3_state'); localStorage.removeItem('bia3_names'); localStorage.removeItem('bia3_bet');
-  balances={A:0,B:0,C:0}; history=[]; selectedPlayers=[]; lastWinner=null; lastLoser=null; betAmount=50;
+  localStorage.removeItem('bia3_state');
+  localStorage.removeItem('bia3_names');
+  localStorage.removeItem('bia3_bet');
+  balances={A:0,B:0,C:0};
+  wins={A:0,B:0,C:0};
+  losses={A:0,B:0,C:0};
+  history=[];
+  selectedPlayers=[];
+  lastWinner=null;
+  lastLoser=null;
+  betAmount=50;
   document.getElementById('money').value=50;
-  updateButtons(); renderSummary(); renderHistory();
+  updateButtons();
+  renderSummary();
+  renderHistory();
 }
 
 const savedBet = JSON.parse(localStorage.getItem('bia3_bet') || '{}');
 if(savedBet.betAmount) betAmount = savedBet.betAmount;
-loadState(); updateButtons(); renderSummary(); renderHistory();
+loadState();
+updateButtons();
+renderSummary();
+renderHistory();
 </script>
 </body>
 </html>
