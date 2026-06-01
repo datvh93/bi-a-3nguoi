@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bi A 3 Người - Tính Tiền</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      background: #f5f5f5;
+    }
+    h1 {
+      font-size: 18px;
+      text-align: center;
+      margin: 0 0 10px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .label {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 4px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #6b7280;
+    }
+    button.reset {
+      background: #dc2626;
+    }
+    button.delete-round {
+      width: auto;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: #dc2626;
+      margin: 0;
+    }
+    button.player-btn {
+      width: auto;
+      flex: 1;
+      padding: 10px 5px;
+      font-size: 14px;
+      background: #2563eb;
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      cursor: pointer;
+      margin: 0 2px;
+    }
+    button.player-btn.active {
+      background: #1e40af;
+      border: 2px solid #1e40af;
+    }
+    button.player-btn.disabled {
+      background: #d1d5db;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+    .row > * {
+      flex: 1;
+    }
+    .player {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .player input {
+      margin-bottom: 0;
+      flex: 1;
+    }
+    .player-buttons {
+      display: flex;
+      gap: 4px;
+      margin-top: 5px;
+    }
+    .player-buttons button {
+      flex: 1;
+      margin-bottom: 0;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+    .summary-row:last-child {
+      border-bottom: none;
+    }
+    .win { color: #16a34a; font-weight: bold; }
+    .lose { color: #dc2626; font-weight: bold; }
+    .history-item {
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px dashed #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .history-item:last-child {
+      border-bottom: none;
+    }
+    .history-info {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .small {
+      font-size: 12px;
+      color: #777;
+    }
+    .selected-persons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .selected-persons span {
+      flex: 1;
+      padding: 6px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Bi A 3 Người - Tính Tiền</h1>
+
+<div class="card">
+  <div class="label">Tên 3 người chơi</div>
+  <div class="player">
+    <span>A:</span>
+    <input id="nameA" placeholder="Tên người 1" />
+  </div>
+  <div class="player">
+    <span>B:</span>
+    <input id="nameB" placeholder="Tên người 2" />
+  </div>
+  <div class="player">
+    <span>C:</span>
+    <input id="nameC" placeholder="Tên người 3" />
+  </div>
+  
+  <div class="label" style="margin-top: 10px;">Tiền cược mỗi ván (nghìn đồng)</div>
+  <input id="money" type="number" min="0" placeholder="Ví dụ: 50" value="50" />
+  
+  <button class="secondary" onclick="saveNames()">Lưu tên và tiền cược</button>
+</div>
+
+<div class="card">
+  <div class="label">Chọn 2 người đánh</div>
+  <div class="player-buttons" id="selectTwoButtons">
+    <button id="btnA" class="player-btn" onclick="togglePlayerSelection('A')">A</button>
+    <button id="btnB" class="player-btn" onclick="togglePlayerSelection('B')">B</button>
+    <button id="btnC" class="player-btn" onclick="togglePlayerSelection('C')">C</button>
+  </div>
+  <div class="selected-persons">
+    <span id="selected1">Chưa chọn</span>
+    <span id="selected2">Chưa chọn</span>
+  </div>
+
+  <div class="label" style="margin-top: 10px;">Kết quả ván - Người thắng</div>
+  <div class="player-buttons" id="winnerButtons">
+    <button id="winBtnA" class="player-btn disabled" onclick="setWinner('A')" disabled>A</button>
+    <button id="winBtnB" class="player-btn disabled" onclick="setWinner('B')" disabled>B</button>
+    <button id="winBtnC" class="player-btn disabled" onclick="setWinner('C')" disabled>C</button>
+  </div>
+
+  <button class="secondary" onclick="newRound()" style="margin-top: 10px;">Chuyển ván mới (tự động chọn)</button>
+</div>
+
+<div class="card">
+  <div class="label">Tổng kết công nợ</div>
+  <div id="summary"></div>
+</div>
+
+<div class="card">
+  <div class="label">Lịch sử các ván</div>
+  <div id="history"></div>
+  <button class="reset" onclick="resetAll()">Xóa toàn bộ lịch sử</button>
+</div>
+
+<script>
+  let players = ["A", "B", "C"];
+  let balances = { A: 0, B: 0, C: 0 };
+  let history = [];
+  let selectedPlayers = [];
+  let lastWinner = null;
+  let lastLoser = null;
+  let betAmount = 50;
+
+  function loadState() {
+    const saved = localStorage.getItem("bia3_state");
+    if (saved) {
+      const data = JSON.parse(saved);
+      players = data.players || ["A", "B", "C"];
+      balances = data.balances || { A: 0, B: 0, C: 0 };
+      history = data.history || [];
+      lastWinner = data.lastWinner || null;
+      lastLoser = data.lastLoser || null;
+      betAmount = data.betAmount || 50;
+    }
+    const savedNames = JSON.parse(localStorage.getItem("bia3_names") || "{}");
+    document.getElementById("nameA").value = savedNames.A || "";
+    document.getElementById("nameB").value = savedNames.B || "";
+    document.getElementById("nameC").value = savedNames.C || "";
+    document.getElementById("money").value = savedNames.betAmount || 50;
+  }
+
+  function saveState() {
+    const data = {
+      players,
+      balances,
+      history,
+      lastWinner,
+      lastLoser,
+      betAmount
+    };
+    localStorage.setItem("bia3_state", JSON.stringify(data));
+  }
+
+  function saveNames() {
+    const names = {
+      A: document.getElementById("nameA").value.trim(),
+      B: document.getElementById("nameB").value.trim(),
+      C: document.getElementById("nameC").value.trim(),
+      betAmount: parseInt(document.getElementById("money").value, 10) || 50
+    };
+    betAmount = names.betAmount;
+    localStorage.setItem("bia3_names", JSON.stringify(names));
+    localStorage.setItem("bia3_bet", JSON.stringify({ betAmount: betAmount }));
+    updateAllButtons();
+    renderSummary();
+    renderHistory();
+  }
+
+  function getName(p) {
+    const savedNames = JSON.parse(localStorage.getItem("bia3_names") || "{}");
+    return savedNames[p] || p;
+  }
+
+  function updateAllButtons() {
+    const btnA = document.getElementById("btnA");
+    const btnB = document.getElementById("btnB");
+    const btnC = document.getElementById("btnC");
+
+    btnA.textContent = getName("A");
+    btnB.textContent = getName("B");
+    btnC.textContent = getName("C");
+
+    updateSelectTwoButtons();
+    updateWinnerButtons();
+  }
+
+  function updateSelectTwoButtons() {
+    const btnA = document.getElementById("btnA");
+    const btnB = document.getElementById("btnB");
+    const btnC = document.getElementById("btnC");
+
+    btnA.classList.remove("active");
+    btnB.classList.remove("active");
+    btnC.classList.remove("active");
+
+    if (selectedPlayers.includes("A")) btnA.classList.add("active");
+    if (selectedPlayers.includes("B")) btnB.classList.add("active");
+    if (selectedPlayers.includes("C")) btnC.classList.add("active");
+
+    document.getElementById("selected1").textContent = selectedPlayers[0] ? getName(selectedPlayers[0]) : "Chưa chọn";
+    document.getElementById("selected2").textContent = selectedPlayers[1] ? getName(selectedPlayers[1]) : "Chưa chọn";
+  }
+
+  function updateWinnerButtons() {
+    const winBtnA = document.getElementById("winBtnA");
+    const winBtnB = document.getElementById("winBtnB");
+    const winBtnC = document.getElementById("winBtnC");
+
+    winBtnA.textContent = getName("A");
+    winBtnB.textContent = getName("B");
+    winBtnC.textContent = getName("C");
+
+    winBtnA.classList.remove("disabled");
+    winBtnB.classList.remove("disabled");
+    winBtnC.classList.remove("disabled");
+    
+    if (!selectedPlayers.includes("A")) {
+      winBtnA.classList.add("disabled");
+      winBtnA.disabled = true;
+    } else {
+      winBtnA.disabled = false;
+    }
+    if (!selectedPlayers.includes("B")) {
+      winBtnB.classList.add("disabled");
+      winBtnB.disabled = true;
+    } else {
+      winBtnB.disabled = false;
+    }
+    if (!selectedPlayers.includes("C")) {
+      winBtnC.classList.add("disabled");
+      winBtnC.disabled = true;
+    } else {
+      winBtnC.disabled = false;
+    }
+  }
+
+  function togglePlayerSelection(p) {
+    const idx = selectedPlayers.indexOf(p);
+    
+    if (idx > -1) {
+      selectedPlayers.splice(idx, 1);
+    } else {
+      if (selectedPlayers.length < 2) {
+        selectedPlayers.push(p);
+      } else {
+        alert("Chỉ được chọn 2 người đánh!");
+        return;
+      }
+    }
+    
+    updateSelectTwoButtons();
+    updateWinnerButtons();
+    saveState();
+  }
+
+  function setWinner(p) {
+    if (!selectedPlayers.includes(p)) return;
+    
+    const loser = selectedPlayers[0] === p ? selectedPlayers[1] : selectedPlayers[0];
+    
+    const money = betAmount;
+
+    balances[p] += money;
+    balances[loser] -= money;
+
+    const round = {
+      winner: p,
+      loser: loser,
+      money: money
+    };
+    history.push(round);
+    lastWinner = p;
+    lastLoser = loser;
+
+    selectedPlayers = [];
+    
+    updateSelectTwoButtons();
+    updateWinnerButtons();
+    saveState();
+    renderSummary();
+    renderHistory();
+  }
+
+  function newRound() {
+    if (!lastWinner || !lastLoser) {
+      alert("Chưa có ván nào, vui lòng thêm ván trước!");
+      return;
+    }
+    
+    const thirdPlayer = players.find(p => p !== lastWinner && p !== lastLoser);
+    
+    if (!thirdPlayer) {
+      alert("Lỗi: không tìm thấy người thứ 3!");
+      return;
+    }
+    
+    selectedPlayers = [lastWinner, thirdPlayer];
+    
+    updateSelectTwoButtons();
+    updateWinnerButtons();
+    saveState();
+    
+    alert("Ván mới: " + getName(lastWinner) + " (thắng ván trước) + " + getName(thirdPlayer));
+  }
+
+  function deleteRound(index) {
+    if (!confirm("Xóa ván số " + (index + 1) + "?")) return;
+
+    const round = history[index];
+    balances[round.winner] -= round.money;
+    balances[round.loser] += round.money;
+
+    history.splice(index, 1);
+    
+    if (history.length > 0) {
+      lastWinner = history[history.length - 1].winner;
+      lastLoser = history[history.length - 1].loser;
+    } else {
+      lastWinner = null;
+      lastLoser = null;
+    }
+
+    saveState();
+    renderSummary();
+    renderHistory();
+  }
+
+  function renderSummary() {
+    const sum = document.getElementById("summary");
+    sum.innerHTML = "";
+
+    players.forEach(p => {
+      const row = document.createElement("div");
+      row.className = "summary-row";
+      const name = getName(p);
+      const bal = balances[p];
+      const spanName = document.createElement("span");
+      spanName.textContent = name;
+      const spanBal = document.createElement("span");
+      spanBal.textContent = (bal >= 0 ? "+" : "") + bal + "k";
+      if (bal > 0) spanBal.className = "win";
+      if (bal < 0) spanBal.className = "lose";
+
+      row.appendChild(spanName);
+      row.appendChild(spanBal);
+      sum.appendChild(row);
+    });
+  }
+
+  function renderHistory() {
+    const hist = document.getElementById("history");
+    hist.innerHTML = "";
+    if (history.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "small";
+      empty.textContent = "Chưa có ván nào.";
+      hist.appendChild(empty);
+      return;
+    }
+    history.forEach((r, idx) => {
+      const item = document.createElement("div");
+      item.className = "history-item";
+
+      const info = document.createElement("div");
+      info.className = "history-info";
+      info.textContent = "Ván " + (idx + 1) + ": " + getName(r.winner) + " thắng " + getName(r.loser) + " " + r.money + "k";
+
+      const btnDel = document.createElement("button");
+      btnDel.className = "delete-round";
+      btnDel.textContent = "Xóa";
+      btnDel.onclick = () => deleteRound(idx);
+
+      item.appendChild(info);
+      item.appendChild(btnDel);
+      hist.appendChild(item);
+    });
+  }
+
+  function resetAll() {
+    if (!confirm("Bạn có chắc muốn xóa toàn bộ dữ liệu?")) return;
+    localStorage.removeItem("bia3_state");
+    localStorage.removeItem("bia3_names");
+    localStorage.removeItem("bia3_bet");
+    players = ["A", "B", "C"];
+    balances = { A: 0, B: 0, C: 0 };
+    history = [];
+    selectedPlayers = [];
+    lastWinner = null;
+    lastLoser = null;
+    betAmount = 50;
+    document.getElementById("money").value = 50;
+    updateAllButtons();
+    renderSummary();
+    renderHistory();
+  }
+
+  const savedBet = JSON.parse(localStorage.getItem("bia3_bet") || "{}");
+  if (savedBet.betAmount) {
+    betAmount = savedBet.betAmount;
+  }
+
+  loadState();
+  updateAllButtons();
+  renderSummary();
+  renderHistory();
+</script>
+
+</body>
+</html>
